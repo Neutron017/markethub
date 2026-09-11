@@ -6,10 +6,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 class Setting(BaseSettings):
     database_url:str
-
+    internal_service_token: str
     jwt_secret: str
     jwt_algorithm: str = "HS256"
-
     redis_url: str = "redis://localhost:6379/0"
 
     model_config = SettingsConfigDict(

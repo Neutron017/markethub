@@ -6,10 +6,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.services.internal_auth import verify_internal_token
 from app.services.auth import get_current_user
 from app.database import get_db
 from app.models.product import Product
-from app.schemas.product import ProductCreate, ProductResponse, ProductUpdate
+from app.schemas.product import ProductCreate, ProductStockUpdate, ProductResponse, ProductUpdate
 from app.services.cache import PRODUCTS_CACHE_PREFIX, get_cached_products, invalidate_products_cache, set_cached_products
 
 router = APIRouter(
@@ -194,6 +195,44 @@ async def update_product(
 
     return product
 
+@router.patch(
+    "/{product_id}/stock",
+    response_model=ProductResponse,
+)
+async def update_product_stock(
+    product_id: UUID,
+    stock_data: ProductStockUpdate,
+    _: None = Depends(verify_internal_token),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(Product).where(Product.id == product_id)
+    )
+
+    product = result.scalar_one_or_none()
+
+    if product is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Product not found",
+        )
+
+    new_stock = product.stock + stock_data.quantity
+
+    if new_stock < 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Not enough stock",
+        )
+
+    product.stock = new_stock
+
+    await db.commit()
+    await db.refresh(product)
+
+    await invalidate_products_cache()
+
+    return product
 
 @router.delete(
     "/{product_id}",
@@ -231,3 +270,4 @@ async def delete_product(
     await invalidate_products_cache()
 
     return
+

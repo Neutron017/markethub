@@ -47,21 +47,67 @@ services:
     volumes:
       - products_postgres_data:/var/lib/postgresql/data
 
+  postgres-orders:
+    image: postgres:16
+    container_name: markethub-postgres-orders
+    environment:
+      POSTGRES_DB: orders_db
+      POSTGRES_USER: markethub
+      POSTGRES_PASSWORD: markethub
+    ports:
+      - "5435:5432"
+    volumes:
+      - orders_postgres_data:/var/lib/postgresql/data
+
   product-service:
     build:
       context: ./product-service
     container_name: markethub-product-service
     environment:
       DATABASE_URL: postgresql+asyncpg://markethub:markethub@postgres-products:5432/products_db
+      JWT_SECRET: change-this-secret
+      JWT_ALGORITHM: HS256
       REDIS_URL: redis://redis:6379/0
+      INTERNAL_SERVICE_TOKEN: change-this-internal-token
     ports:
       - "8002:8000"
     depends_on:
       - postgres-products
       - redis
 
+  order-service:
+    build:
+      context: ./order-service
+    container_name: markethub-order-service
+    environment:
+      DATABASE_URL: postgresql+asyncpg://markethub:markethub@postgres-orders:5432/orders_db
+      JWT_SECRET: change-this-secret
+      JWT_ALGORITHM: HS256
+      RABBITMQ_URL: amqp://markethub:markethub@rabbitmq:5672/
+      PRODUCT_SERVICE_URL: http://product-service:8000
+      INTERNAL_SERVICE_TOKEN: change-this-internal-token
+    ports:
+      - "8003:8000"
+    depends_on:
+      - postgres-orders
+      - rabbitmq
+      - product-service
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: markethub-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: markethub
+      RABBITMQ_DEFAULT_PASS: markethub
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
 
 volumes:
   users_postgres_data:
   products_postgres_data:
   redis_data:
+  orders_postgres_data:
+  rabbitmq_data:

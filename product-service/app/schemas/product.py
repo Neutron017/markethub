@@ -49,6 +49,8 @@ class ReviewCreate(BaseModel):
     rating: int = Field(ge=1, le=5)
     comment: str | None = None
 
+class ProductStockUpdate(BaseModel):
+    quantity: int
 
 class ReviewResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
