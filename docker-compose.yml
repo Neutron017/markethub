@@ -26,5 +26,30 @@ services:
     depends_on:
       - postgres-users
 
+  postgres-products:
+    image: postgres:16
+    container_name: markethub-postgres-products
+    environment:
+      POSTGRES_DB: products_db
+      POSTGRES_USER: markethub
+      POSTGRES_PASSWORD: markethub
+    ports:
+      - "5434:5432"
+    volumes:
+      - products_postgres_data:/var/lib/postgresql/data
+
+  product-service:
+    build:
+      context: ./product-service
+    container_name: markethub-product-service
+    environment:
+      DATABASE_URL: postgresql+asyncpg://markethub:markethub@postgres-products:5432/products_db
+    ports:
+      - "8002:8000"
+    depends_on:
+      - postgres-products
+
+
 volumes:
   users_postgres_data:
+  products_postgres_data:

@@ -11,7 +11,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 load_dotenv(dotenv_path=BASE_DIR / ".env")
 
 from app.database import Base
-from app.models.user import User
+from app.models.category import Category
+from app.models.product import Product
 from app.config import settings
 
 # this is the Alembic Config object, which provides
