@@ -11,6 +11,11 @@ services:
       - "5433:5432"
     volumes:
       - users_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U markethub -d users_db" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   user-service:
     build:
@@ -45,7 +50,12 @@ services:
     ports:
       - "5434:5432"
     volumes:
-      - products_postgres_data:/var/lib/postgresql/data
+      - products_postgres_data:/var/lib/postgresql/
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U markethub -d products_db" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   postgres-orders:
     image: postgres:16
@@ -58,6 +68,11 @@ services:
       - "5435:5432"
     volumes:
       - orders_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U markethub -d orders_db" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   product-service:
     build:
@@ -75,6 +90,58 @@ services:
       - postgres-products
       - redis
 
+  postgres-notifications:
+    image: postgres:16
+    container_name: markethub-postgres-notifications
+    environment:
+      POSTGRES_DB: notifications_db
+      POSTGRES_USER: markethub
+      POSTGRES_PASSWORD: markethub
+    ports:
+      - "5436:5432"
+    volumes:
+      - notifications_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U markethub -d notifications_db" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: markethub-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: markethub
+      RABBITMQ_DEFAULT_PASS: markethub
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      # Заменяем "ping" на проверку готовности портов
+      test: [ "CMD", "rabbitmq-diagnostics", "-q", "check_port_connectivity" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  notification-service:
+    build:
+      context: ./notification-service
+    container_name: markethub-notification-service
+    environment:
+      DATABASE_URL: postgresql+asyncpg://markethub:markethub@postgres-notifications:5432/notifications_db
+      JWT_SECRET: change-this-secret
+      JWT_ALGORITHM: HS256
+      RABBITMQ_URL: amqp://markethub:markethub@rabbitmq:5672/
+    ports:
+      - "8004:8000"
+    depends_on:
+      postgres-notifications:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
   order-service:
     build:
       context: ./order-service
@@ -89,21 +156,12 @@ services:
     ports:
       - "8003:8000"
     depends_on:
-      - postgres-orders
-      - rabbitmq
-      - product-service
-
-  rabbitmq:
-    image: rabbitmq:3-management
-    container_name: markethub-rabbitmq
-    environment:
-      RABBITMQ_DEFAULT_USER: markethub
-      RABBITMQ_DEFAULT_PASS: markethub
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-    volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
+      postgres-orders:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      product-service:
+        condition: service_started
 
 volumes:
   users_postgres_data:
@@ -111,3 +169,4 @@ volumes:
   redis_data:
   orders_postgres_data:
   rabbitmq_data:
+  notifications_postgres_data:
