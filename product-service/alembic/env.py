@@ -13,6 +13,7 @@ load_dotenv(dotenv_path=BASE_DIR / ".env")
 from app.database import Base
 from app.models.category import Category
 from app.models.product import Product
+from app.models.review import Review
 from app.config import settings
 
 # this is the Alembic Config object, which provides

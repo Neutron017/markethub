@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.models.category import Category
 from app.schemas.product import CategoryCreate, CategoryResponse
+from app.services.auth import require_admin
 
 
 router = APIRouter(
@@ -22,6 +23,7 @@ router = APIRouter(
 )
 async def create_category(
     data: CategoryCreate,
+    admin_id: UUID = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
@@ -91,6 +93,7 @@ async def get_category(
 )
 async def delete_category(
     category_id: UUID,
+    admin_id: UUID = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(

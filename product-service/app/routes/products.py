@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.services.auth import get_current_user
 from app.database import get_db
 from app.models.product import Product
 from app.schemas.product import ProductCreate, ProductResponse, ProductUpdate
@@ -22,11 +23,11 @@ router = APIRouter(
 )
 async def create_product(
     data: ProductCreate,
-    seller_id: UUID,
+    current_user_id: UUID = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     product = Product(
-        seller_id=seller_id,
+        seller_id=current_user_id,
         category_id=data.category_id,
         name=data.name,
         description=data.description,
@@ -126,6 +127,7 @@ async def get_product(
 async def update_product(
     product_id: UUID,
     data: ProductUpdate,
+    current_user_id: UUID = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
@@ -135,6 +137,12 @@ async def update_product(
     )
 
     product = result.scalar_one_or_none()
+
+    if product.seller_id != current_user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only modify your own products",
+        )
 
     if not product:
         raise HTTPException(
@@ -161,6 +169,7 @@ async def update_product(
 )
 async def delete_product(
     product_id: UUID,
+    current_user_id: UUID = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
@@ -170,6 +179,12 @@ async def delete_product(
     )
 
     product = result.scalar_one_or_none()
+
+    if product.seller_id != current_user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only modify your own products",
+        )
 
     if not product:
         raise HTTPException(

@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from app.routes import categories, products
+from app.routes import categories, products, reviews
 
 
 app = FastAPI(
@@ -12,6 +12,7 @@ app = FastAPI(
 
 app.include_router(categories.router)
 app.include_router(products.router)
+app.include_router(reviews.router)
 
 
 @app.get("/health")

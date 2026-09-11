@@ -7,6 +7,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 class Setting(BaseSettings):
     database_url:str
 
+    jwt_secret: str
+    jwt_algorithm: str = "HS256"
 
     model_config = SettingsConfigDict(
         env_file='.env',
