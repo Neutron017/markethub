@@ -26,6 +26,15 @@ services:
     depends_on:
       - postgres-users
 
+  redis:
+    image: redis:7-alpine
+    container_name: markethub-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+
   postgres-products:
     image: postgres:16
     container_name: markethub-postgres-products
@@ -44,12 +53,15 @@ services:
     container_name: markethub-product-service
     environment:
       DATABASE_URL: postgresql+asyncpg://markethub:markethub@postgres-products:5432/products_db
+      REDIS_URL: redis://redis:6379/0
     ports:
       - "8002:8000"
     depends_on:
       - postgres-products
+      - redis
 
 
 volumes:
   users_postgres_data:
   products_postgres_data:
+  redis_data:

@@ -10,6 +10,8 @@ class Setting(BaseSettings):
     jwt_secret: str
     jwt_algorithm: str = "HS256"
 
+    redis_url: str = "redis://localhost:6379/0"
+
     model_config = SettingsConfigDict(
         env_file='.env',
         env_file_encoding="utf-8",

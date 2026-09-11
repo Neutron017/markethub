@@ -1,4 +1,6 @@
+import json
 from uuid import UUID
+from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
@@ -8,7 +10,7 @@ from app.services.auth import get_current_user
 from app.database import get_db
 from app.models.product import Product
 from app.schemas.product import ProductCreate, ProductResponse, ProductUpdate
-
+from app.services.cache import PRODUCTS_CACHE_PREFIX, get_cached_products, invalidate_products_cache, set_cached_products
 
 router = APIRouter(
     prefix="/api/v1/products",
@@ -40,6 +42,8 @@ async def create_product(
     await db.commit()
     await db.refresh(product)
 
+    await invalidate_products_cache()
+
     return product
 
 
@@ -49,13 +53,28 @@ async def create_product(
 )
 async def get_products(
     category_id: UUID | None = None,
-    min_price: float | None = Query(default=None, ge=0),
-    max_price: float | None = Query(default=None, ge=0),
+    min_price: Decimal | None = Query(default=None, ge=0),
+    max_price: Decimal | None = Query(default=None, ge=0),
     search: str | None = None,
     page: int = Query(default=1, ge=1),
     limit: int = Query(default=20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
 ):
+    cache_key = (
+        f"{PRODUCTS_CACHE_PREFIX}"
+        f"page={page}:"
+        f"limit={limit}:"
+        f"category={category_id}:"
+        f"min_price={min_price}:"
+        f"max_price={max_price}:"
+        f"search={search}"
+    )
+
+    cached_products = await get_cached_products(cache_key)
+
+    if cached_products is not None:
+        return cached_products
+
     query = select(Product).where(
         Product.is_active.is_(True)
     )
@@ -91,8 +110,19 @@ async def get_products(
 
     result = await db.execute(query)
 
-    return result.scalars().all()
+    products = result.scalars().all()
 
+    response = [
+        ProductResponse.model_validate(product).model_dump(mode="json")
+        for product in products
+    ]
+
+    await set_cached_products(
+        cache_key,
+        response,
+    )
+
+    return response
 
 @router.get(
     "/{product_id}",
@@ -160,6 +190,8 @@ async def update_product(
     await db.commit()
     await db.refresh(product)
 
+    await invalidate_products_cache()
+
     return product
 
 
@@ -195,3 +227,7 @@ async def delete_product(
     product.is_active = False
 
     await db.commit()
+
+    await invalidate_products_cache()
+
+    return
