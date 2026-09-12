@@ -90,6 +90,20 @@ services:
       - postgres-products
       - redis
 
+  product-service-2:
+    build:
+      context: ./product-service
+    container_name: markethub-product-service-2
+    environment:
+      DATABASE_URL: postgresql+asyncpg://markethub:markethub@postgres-products:5432/products_db
+      JWT_SECRET: change-this-secret
+      JWT_ALGORITHM: HS256
+      REDIS_URL: redis://redis:6379/0
+      INTERNAL_SERVICE_TOKEN: change-this-internal-token
+    depends_on:
+      - postgres-products
+      - redis
+
   postgres-notifications:
     image: postgres:16
     container_name: markethub-postgres-notifications
@@ -152,6 +166,7 @@ services:
     depends_on:
       - user-service
       - product-service
+      - product-service-2
       - order-service
       - notification-service
 
