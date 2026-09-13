@@ -1,8 +1,12 @@
-name: CI
+name: CI/CD
 
 on:
   push:
   pull_request:
+
+permissions:
+  contents: read
+  packages: write
 
 jobs:
   quality:
@@ -30,3 +34,61 @@ jobs:
 
       - name: Build Docker images
         run: docker compose build
+
+
+  publish:
+    name: Publish Docker images
+    runs-on: ubuntu-latest
+
+    # Публикуем образы только при push,
+    # а не при Pull Request
+    if: github.event_name == 'push'
+
+    needs: quality
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push user-service
+        uses: docker/build-push-action@v6
+        with:
+          context: ./user-service
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/markethub-user-service:latest
+            ghcr.io/${{ github.repository_owner }}/markethub-user-service:${{ github.sha }}
+
+      - name: Build and push product-service
+        uses: docker/build-push-action@v6
+        with:
+          context: ./product-service
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/markethub-product-service:latest
+            ghcr.io/${{ github.repository_owner }}/markethub-product-service:${{ github.sha }}
+
+      - name: Build and push order-service
+        uses: docker/build-push-action@v6
+        with:
+          context: ./order-service
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/markethub-order-service:latest
+            ghcr.io/${{ github.repository_owner }}/markethub-order-service:${{ github.sha }}
+
+      - name: Build and push notification-service
+        uses: docker/build-push-action@v6
+        with:
+          context: ./notification-service
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/markethub-notification-service:latest
+            ghcr.io/${{ github.repository_owner }}/markethub-notification-service:${{ github.sha }}
