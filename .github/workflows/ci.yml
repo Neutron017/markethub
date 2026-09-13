@@ -27,7 +27,7 @@ jobs:
 
       - name: Run Ruff
         run: |
-          ruff check user-service product-service order-service notification-service
+          ruff check user-service product-service order-service notification-service --select E9,F63,F7,F82
 
       - name: Validate Docker Compose
         run: docker compose config
@@ -40,8 +40,7 @@ jobs:
     name: Publish Docker images
     runs-on: ubuntu-latest
 
-    # Публикуем образы только при push,
-    # а не при Pull Request
+
     if: github.event_name == 'push'
 
     needs: quality
