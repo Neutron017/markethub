@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  quality:
+    name: Code quality
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Ruff
+        run: pip install ruff
+
+      - name: Run Ruff
+        run: |
+          ruff check user-service product-service order-service notification-service
+
+      - name: Validate Docker Compose
+        run: docker compose config
+
+      - name: Build Docker images
+        run: docker compose build
