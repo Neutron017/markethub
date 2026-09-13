@@ -6,3 +6,4 @@ alembic
 pydantic-settings
 pyjwt
 redis
+prometheus-fastapi-instrumentator

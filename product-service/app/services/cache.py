@@ -1,7 +1,7 @@
 import json
 
 from app.redis import redis_client
-
+from app.metrics import cache_hits_total, cache_misses_total
 
 CACHE_TTL = 60
 PRODUCTS_CACHE_PREFIX = "products:list:"
@@ -12,8 +12,10 @@ async def get_cached_products(cache_key: str):
         cached = await redis_client.get(cache_key)
 
         if cached is None:
+            cache_misses_total.inc()
             return None
 
+        cache_hits_total.inc()
         return json.loads(cached)
 
     except Exception:

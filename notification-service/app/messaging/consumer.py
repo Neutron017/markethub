@@ -7,7 +7,7 @@ from sqlalchemy import select
 from app.config import settings
 from app.database import AsyncSessionLocal
 from app.models.notification import Notification
-
+from app.metrics import notifications_created_total
 
 EXCHANGE_NAME = "markethub.events"
 QUEUE_NAME = "notifications.order-events"
@@ -63,6 +63,7 @@ async def handle_message(message: aio_pika.abc.AbstractIncomingMessage) -> None:
 
             db.add(notification)
             await db.commit()
+            notifications_created_total.inc()
 
 
 async def start_consumer() -> aio_pika.abc.AbstractConnection:

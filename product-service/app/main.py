@@ -1,5 +1,5 @@
 from contextlib import asynccontextmanager
-
+from prometheus_fastapi_instrumentator import Instrumentator
 from fastapi import FastAPI
 
 from app.redis import close_redis
@@ -18,6 +18,8 @@ app = FastAPI(
     description="Product and category microservice",
     lifespan=lifespan,
 )
+
+Instrumentator().instrument(app).expose(app)
 
 app.include_router(categories.router)
 app.include_router(products.router)

@@ -1,5 +1,5 @@
 from contextlib import asynccontextmanager
-
+from prometheus_fastapi_instrumentator import Instrumentator
 from fastapi import FastAPI
 
 from app.messaging.consumer import start_consumer
@@ -22,6 +22,8 @@ app = FastAPI(
     description="Notification microservice",
     lifespan=lifespan,
 )
+
+Instrumentator().instrument(app).expose(app)
 
 app.include_router(notifications.router)
 

@@ -7,3 +7,4 @@ pydantic-settings
 pyjwt
 aio-pika
 httpx
+prometheus-fastapi-instrumentator

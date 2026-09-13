@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 import aio_pika
 
 from app.config import settings
-
+from app.metrics import rabbitmq_events_total
 
 EXCHANGE_NAME = "markethub.events"
 
@@ -44,6 +44,8 @@ async def publish_event(
             message,
             routing_key=event_type,
         )
+
+        rabbitmq_events_total.inc()
 
     finally:
         await connection.close()

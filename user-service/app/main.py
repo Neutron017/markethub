@@ -1,3 +1,4 @@
+from prometheus_fastapi_instrumentator import Instrumentator
 from fastapi import FastAPI
 
 from app.routes import auth, users
@@ -9,6 +10,7 @@ app = FastAPI(
     description="User and authentication microservice",
 )
 
+Instrumentator().instrument(app).expose(app)
 
 app.include_router(auth.router)
 app.include_router(users.router)

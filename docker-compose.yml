@@ -170,6 +170,31 @@ services:
       - order-service
       - notification-service
 
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    container_name: markethub-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    depends_on:
+      - user-service
+      - product-service
+      - product-service-2
+      - order-service
+      - notification-service
+
+  grafana:
+    image: grafana/grafana:12.1.1
+    container_name: markethub-grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+
   order-service:
     build:
       context: ./order-service
@@ -198,3 +223,5 @@ volumes:
   orders_postgres_data:
   rabbitmq_data:
   notifications_postgres_data:
+  prometheus_data:
+  grafana_data:

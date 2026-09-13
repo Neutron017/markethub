@@ -5,6 +5,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.metrics import orders_created_total, orders_cancelled_total
+from app.metrics import orders_created_total
 from app.database import get_db
 from app.messaging.rabbitmq import publish_event
 from app.models.cart import Cart, CartItem
@@ -127,7 +129,7 @@ async def create_order(
         await db.delete(cart_item)
 
     await db.commit()
-
+    orders_created_total.inc()
     await db.refresh(order)
 
     items_result = await db.execute(
@@ -268,6 +270,8 @@ async def update_order_status(
     order.status = status_data.status.value
 
     await db.commit()
+    if order.status == OrderStatus.CANCELLED.value:
+        orders_cancelled_total.inc()
     await db.refresh(order)
 
     await publish_event(
